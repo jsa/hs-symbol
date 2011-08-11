@@ -51,17 +51,17 @@ import Data.String
 import qualified Data.Map as Map
 import System.IO.Unsafe (unsafePerformIO)
 
-data Symbol =  -- | Unique identifier and the string itself
-               Symbol {-# UNPACK #-} !Int !String
+newtype Symbol = -- | Unique identifier and the string itself
+                 Symbol (Int, String)
 #if defined(__GLASGOW_HASKELL__)
   deriving (Data, Typeable)
 #endif /* defined(__GLASGOW_HASKELL__) */
 
 instance Eq Symbol where
-    (Symbol i1 _) == (Symbol i2 _) = i1 == i2
+    (Symbol (i1, _)) == (Symbol (i2, _)) = i1 == i2
 
 instance Ord Symbol where
-    compare (Symbol i1 _) (Symbol i2 _) = compare i1 i2
+    compare (Symbol (i1, _)) (Symbol (i2, _)) = compare i1 i2
 
 #if __GLASGOW_HASKELL__ >= 608
 instance IsString Symbol where
@@ -85,7 +85,7 @@ symbolEnv = unsafePerformIO $ newMVar $ SymbolEnv 1 Map.empty
 intern :: String -> Symbol
 intern s = s `seq` unsafePerformIO $ modifyMVar symbolEnv $ \env -> do
     case Map.lookup s (symbols env) of
-      Nothing  -> do let sym  = Symbol (uniq env) s
+      Nothing  -> do let sym  = Symbol (uniq env, s)
                      let env' = env { uniq    = uniq env + 1,
                                       symbols = Map.insert s sym
                                                 (symbols env)
@@ -95,4 +95,4 @@ intern s = s `seq` unsafePerformIO $ modifyMVar symbolEnv $ \env -> do
 
 -- |Return the 'String' associated with a 'Symbol'.
 unintern :: Symbol -> String
-unintern (Symbol _ s) = s
+unintern (Symbol (_, s)) = s
